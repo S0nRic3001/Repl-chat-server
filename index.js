@@ -1,20 +1,44 @@
-const express = require("express");
-const app = express();
+const io = require("socket.io-client");
+const readline = require("readline");
 
-const http = require("http");
-const server = http.Server(app);
+var socket = io("https://Repl-chat-server.s0nric3001.repl.co");
 
-const sockets = require("socket.io");
-io = sockets(server);
+const chat_interface = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+var chat_handle = "";
+var message_to_send = "";
+
+socket.on("connect",function(){
+  get_chat_handle();
+  socket.on("broadcast",display_message);
+});
 
 
+function get_chat_handle(){
+  chat_interface.question(
+    'Hellooo! Whats your chat handle? ',
+    function(answer) {
+      chat_handle = answer;
+      socket.emit("message",chat_handle + " has entered the chat");
+      chat();
+    }
+  );
+}
 
-io.on("connection",function(connection){connection.on("message",function(data)
-                                                      {console.log("new message: " + data);
-                                                  io.emit("broadcast",data);
-                                                                });
+function chat(){
+  chat_interface.question(chat_handle + ": ",function(message){
+    message_to_send = chat_handle + ": " + message;
+    socket.emit("message", message_to_send);
+    chat();
   });
+}
 
-server.listen(3000,function(){console.log("listening to port 3000");
-                             });
-
+function display_message(message){
+  if(message_to_send != message){
+    console.log("\n" + message);
+    chat();
+  }
+}
